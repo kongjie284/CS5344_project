@@ -84,10 +84,24 @@ python3 scripts/generate_submission.py \
   --train train-NSL-KDD.csv \
   --output /tmp/submission-nsl-kdd-coverage.csv \
   --target-n 2000 \
+  --method coverage \
   --seed 42
 ```
 
 这只是首版可复现方法，尚未经过本地 detector 对照实验挑选参数，也尚未等同于最终 Kaggle 方法。
+
+本地首次对照实验（seed 42、80/20 分层 holdout、2,000 条生成预算）目前由 `full-bootstrap` 在两个数据集上胜出。因此，第一版 Kaggle candidate 应使用：
+
+```bash
+python3 scripts/generate_submission.py \
+  --train train-NSL-KDD.csv \
+  --output outputs/submissions/submission-NSL-KDD-bootstrap-v1.csv \
+  --target-n 2000 \
+  --method full-bootstrap \
+  --seed 42
+```
+
+`outputs/` 被 Git 忽略，避免将每次试验的 CSV 纳入版本控制。只有在 Kaggle 官方行数已确认、人工检查后，才应将最终上传的两份 CSV 作为 release artifact 保存或共享。
 
 ## 推荐的完成路线
 
