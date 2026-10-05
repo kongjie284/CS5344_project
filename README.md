@@ -21,7 +21,7 @@ Kaggle 会用提交的合成 normal 数据训练固定 detector，并在隐藏�
 
 ### 关于提交行数
 
-仓库现有的 starter kit 和两份 submission 都生成 **2,000 行**，适合作为开发阶段 baseline。团队 proposal 曾规划最终导出 70,000 行。两者都不能替代 Kaggle 的实时官方要求：最终运行前，必须以 competition 页面或官方 sample submission 的行数为唯一依据，并在生成脚本中显式设置 `TARGET_N`。
+仓库现有的 starter kit 和两份 submission 都生成 **2,000 行**，适合作为开发阶段 baseline。Kaggle 官方 competition 页面当前要求的最终行数不同：**NSL-KDD 为 40,000 行，UNSW-NB15 为 70,000 行**。在规则更新时，应以 competition 页面或官方 sample submission 为唯一依据，并在生成脚本中显式设置 `TARGET_N`。
 
 ## 仓库内容
 
@@ -90,16 +90,18 @@ python3 scripts/generate_submission.py \
 
 这只是首版可复现方法，尚未经过本地 detector 对照实验挑选参数，也尚未等同于最终 Kaggle 方法。
 
-本地首次对照实验（seed 42、80/20 分层 holdout、2,000 条生成预算）目前由 `full-bootstrap` 在两个数据集上胜出。因此，第一版 Kaggle candidate 应使用：
+本地对照实验使用 seed 42、80/20 分层 holdout，以及与各 competition 相同的生成预算。`coverage` v1 目前在两个数据集上均优于 starter kit 与 full bootstrap：NSL-KDD 平均 AUPRC 为 0.9570（40,000 行），UNSW-NB15 为 0.5017（70,000 行）。因此第一版 Kaggle candidate 使用 `coverage`：
 
 ```bash
 python3 scripts/generate_submission.py \
   --train train-NSL-KDD.csv \
-  --output outputs/submissions/submission-NSL-KDD-bootstrap-v1.csv \
-  --target-n 2000 \
-  --method full-bootstrap \
+  --output outputs/submissions/submission-NSL-KDD-coverage-v1.csv \
+  --target-n 40000 \
+  --method coverage \
   --seed 42
 ```
+
+UNSW-NB15 使用相同命令结构，但 `--target-n 70000`。每次 public leaderboard 提交都只能作为有限的外部验证，不能直接围绕 public score 反复调参。
 
 `outputs/` 被 Git 忽略，避免将每次试验的 CSV 纳入版本控制。只有在 Kaggle 官方行数已确认、人工检查后，才应将最终上传的两份 CSV 作为 release artifact 保存或共享。
 
