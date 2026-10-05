@@ -1,96 +1,96 @@
 # CS5344 Project：面向异常检测的表格数据增强
 
-本仓库是 NUS CS5344 小组项目的共享工作区。目标不是提交分类器预测结果，而是为两个网络流量数据集生成 **仅表示正常（normal）流量** 的合成训练数据，供 Kaggle 的固定异常检测器评测。
+本仓库是 NUS CS5344 Team 27（Offer-Squad）的共享工作区。项目目标不是提交 anomaly prediction，而是为两个网络流量数据集生成**仅代表正常（normal）流量**的合成训练数据，供 Kaggle 的固定异常检测器评测。
 
-> 本文件也面向 AI 助手：开始修改代码前，请先阅读本 README、`Project_2627Sem1/` 下的课程说明，以及当前工作区的 Git 状态。不要修改训练数据、课程原始 PDF 或已生成 submission，除非任务明确要求。
+> 本文件也面向组员的 AI 助手：开始修改前，请阅读本 README、`Project_2627Sem1/` 下的课程材料和当前 Git 状态。不得尝试获取、搜索、重建或使用 Kaggle 的隐藏 validation/test 数据。
 
-## 项目任务与 Kaggle 评分
+## Kaggle：已核实的正式要求
 
-每个数据集都提供了带 `is_anomaly` 标签的训练集：`0` 为 normal、`1` 为 anomaly。我们可以在设计生成策略时使用所有训练特征和标签，但最终上传的 CSV：
+Kaggle MCP 已连接并于 2026-10-05 核实了两个 CS5344 competition。两场比赛都只允许使用已发布的带标签训练集开发方法；训练标签可用于方法设计，但提交文件不能包含标签或 prediction。
 
-- 必须只包含意图为 normal 的样本；
-- 必须有 `id` 列，其余列严格遵循训练集的特征列顺序；
-- **不能**包含 `is_anomaly`；
-- 行数必须严格等于 Kaggle competition 页面或 `sample_submission.csv` 指定的数量。
+| Competition | 官方提交行数 | 评分指标 | 每日上限 |
+|---|---:|---|---:|
+| NSL-KDD | 40,000 | `(AUPRC_ECOD + mean(AUPRC_IForest over 10 fixed seeds)) / 2` | 5/team |
+| UNSW-NB15 | 70,000 | `(AUPRC_ECOD + mean(AUPRC_IForest over 10 fixed seeds)) / 2` | 5/team |
 
-Kaggle 会用提交的合成 normal 数据训练固定 detector，并在隐藏验证/测试数据上评测：
+提交 CSV 必须满足：
 
-`score = (AUPRC_ECOD + AUPRC_IsolationForest) / 2`
+- 只包含意图为 normal 的样本；
+- 第一列为连续且唯一的 `id`；
+- 其余列的名称和顺序与官方模板完全一致；
+- 不含 `is_anomaly` 或任何 prediction 列；
+- categorical feature 由 Kaggle one-hot 编码后评测；
+- hidden validation/test 不会向参赛者发布，public leaderboard 只能作为有限的开发反馈。
 
-其中 ECOD 是基于经验尾部/排序的异常检测器；Isolation Forest 使用课程固定的配置。隐藏集包含训练中未出现的异常类型，因此公开榜只能作为开发反馈，不能为公开榜过拟合。
+两场比赛截止时间均为 **2026-11-01 23:59:59（新加坡时间）**。参赛团队最多 3 人；所有代码与生成流程须在比赛结束后可复现。
 
-### 关于提交行数
+## 当前提交记录
 
-仓库现有的 starter kit 和两份 submission 都生成 **2,000 行**，适合作为开发阶段 baseline。Kaggle 官方 competition 页面当前要求的最终行数不同：**NSL-KDD 为 40,000 行，UNSW-NB15 为 70,000 行**。在规则更新时，应以 competition 页面或官方 sample submission 为唯一依据，并在生成脚本中显式设置 `TARGET_N`。
+2026-10-05 已通过 Kaggle 提交 coverage v1，尚不应为公开榜分数反复调参：
+
+| Competition | Kaggle submission ref | 文件 |
+|---|---:|---|
+| NSL-KDD | `56850612` | `submission-NSL-KDD-coverage-v1.csv` |
+| UNSW-NB15 | `56850622` | `submission-UNSW-NB15-coverage-v1.csv` |
+
+候选 CSV 保存在本地 `outputs/submissions/`，该目录被 Git 忽略，避免把每次实验生成的大文件纳入版本控制。
 
 ## 仓库内容
 
 ```text
 .
-├── Project_2627Sem1/                 # 课程提供的主要材料（请保持原样）
+├── Project_2627Sem1/                  # 课程提供的主要材料（请保持原样）
 │   ├── CS5344_Project_Briefing_2627Sem1.pdf
 │   ├── CS5344_anomaly_detection_problem_formulation.pdf
 │   ├── CS5344_proposal_quiz_2627.pdf
-│   └── starter_kit.py                # 官方简单 baseline
-├── train-NSL-KDD.csv                 # 30,000 行：20,000 normal / 10,000 anomaly
-├── train-UNSW-NB15.csv               # 50,000 行：35,000 normal / 15,000 anomaly
-├── submission-NSL-KDD.csv            # 当前 2,000 行 baseline submission
-├── submission-UNSW-NB15.csv          # 当前 2,000 行 baseline submission
-├── eda_script.py                     # EDA：模式坍缩 t-SNE 与偏态特征分布图
-├── eda_nsl-kdd.png                   # 已生成的 NSL-KDD EDA 图
-├── eda_unsw-nb15.png                 # 已生成的 UNSW-NB15 EDA 图
-├── CS5344_Project_Proposal-Team27.pdf # 已提交 proposal，仅作背景参考
+│   └── starter_kit.py                 # 官方简单 baseline
+├── train-NSL-KDD.csv                  # 30,000 行：20,000 normal / 10,000 anomaly
+├── train-UNSW-NB15.csv                # 50,000 行：35,000 normal / 15,000 anomaly
+├── eda_script.py                      # 早期 EDA 绘图脚本
+├── src/
+│   ├── baselines.py                   # full bootstrap 与 starter-style 对照
+│   └── coverage_generator.py          # 主生成器与 schema 检查
+├── scripts/
+│   ├── evaluate_local.py              # 本地 ECOD + IForest proxy 评估
+│   └── generate_submission.py         # 导出 Kaggle submission
+├── requirements.txt
 └── README.md
 ```
 
 数据 schema：
 
-- **NSL-KDD**：41 个特征（38 数值、3 类别：`protocol_type`、`service`、`flag`）与 `is_anomaly`。
-- **UNSW-NB15**：42 个特征（39 数值、3 类别：`proto`、`service`、`state`）与 `is_anomaly`。
-- 两份训练集均没有缺失值；类别列必须保留合法字符串取值，二元列必须保持为 `0/1`。
+- **NSL-KDD**：41 个 feature（38 数值、3 类别：`protocol_type`、`service`、`flag`）及 `is_anomaly`。
+- **UNSW-NB15**：42 个 feature（39 数值、3 类别：`proto`、`service`、`state`）及 `is_anomaly`。
+- 两份训练集均无缺失值；生成数据必须保持类别合法、二元列为 `0/1`、整数列为整数，并落在 normal 训练数据的观测数值范围内。
 
-## 当前 baseline
+## 官方 baseline
 
-`Project_2627Sem1/starter_kit.py` 的流程：
-
-1. 仅保留 normal 行；
-2. 固定抽取 20 个 prototype；
-3. 有放回重采样到 `TARGET_N=2000`；
-4. 对非二元数值列加入独立 Gaussian jitter，并裁剪回观测范围；
-5. 输出 `id + feature columns`。
-
-从仓库根目录运行：
+`Project_2627Sem1/starter_kit.py` 是课程提供的格式/方法对照：从 20 个 normal prototype 重采样至 `TARGET_N=2000`，再对非二元数值列添加 Gaussian jitter。它容易遗漏罕见 normal mode 并破坏特征依赖关系，因此只应作为 baseline，而不是最终方法。
 
 ```bash
-python Project_2627Sem1/starter_kit.py
+python3 Project_2627Sem1/starter_kit.py
 ```
 
-修改脚本顶部的 `TRAIN_CSV` 和 `OUTPUT_CSV` 可以在两个数据集间切换。它是**格式正确的最低基线**，但 20 个 prototype 容易遗漏罕见 normal 模式，独立加噪也可能破坏数值特征之间的依赖关系；不建议把它当作最终方法。
+## Coverage v1：当前主方法
 
-## 团队主生成器（开发中）
+主实现为 `src/coverage_generator.py`，入口为 `scripts/generate_submission.py`。它：
 
-主方法位于 `src/coverage_generator.py`，命令入口为 `scripts/generate_submission.py`。第一版采用：
+1. 使用全部 normal training rows；
+2. 用三个类别 feature 的组合定义 observed normal signature；
+3. 在经验频率与均匀覆盖之间分配输出配额，并限制罕见 signature 的最大过采样；
+4. 在同一 signature 内混合 exact bootstrap 与有界数值插值；类别和二元 feature 不改变；
+5. 导出前检查行数、`id`、列顺序、缺失/无穷值、类别、二元/整数约束及数值范围。
 
-- 使用全部 normal 样本，而不是只取 20 个 prototype；
-- 以三个类别特征组合（categorical signature）作为正常运行模式；
-- 在经验频率与均匀覆盖之间分配生成配额，同时限制罕见模式的最大过采样倍数；
-- 在相同类别签名内混合 exact bootstrap 与小幅数值插值；类别和二元特征保持不变；
-- 自动验证行数、ID、列顺序、缺失值和无穷值。
+本地 proxy 使用 seed 42、80/20 分层 holdout 和正式提交预算。coverage v1 目前优于 starter-style jitter 和 full-normal bootstrap：
 
-示例（`2000` 仅用于本地开发；最终值必须换成官方要求）：
+| Dataset | 生成预算 | coverage v1 local mean AUPRC |
+|---|---:|---:|
+| NSL-KDD | 40,000 | 0.9570 |
+| UNSW-NB15 | 70,000 | 0.5017 |
 
-```bash
-python3 scripts/generate_submission.py \
-  --train train-NSL-KDD.csv \
-  --output /tmp/submission-nsl-kdd-coverage.csv \
-  --target-n 2000 \
-  --method coverage \
-  --seed 42
-```
+这些是本地 proxy，不是 Kaggle 官方分数；官方 IForest 使用 10 个固定 seeds，hidden data 也不可访问。
 
-这只是首版可复现方法，尚未经过本地 detector 对照实验挑选参数，也尚未等同于最终 Kaggle 方法。
-
-本地对照实验使用 seed 42、80/20 分层 holdout，以及与各 competition 相同的生成预算。`coverage` v1 目前在两个数据集上均优于 starter kit 与 full bootstrap：NSL-KDD 平均 AUPRC 为 0.9570（40,000 行），UNSW-NB15 为 0.5017（70,000 行）。因此第一版 Kaggle candidate 使用 `coverage`：
+导出命令：
 
 ```bash
 python3 scripts/generate_submission.py \
@@ -99,51 +99,34 @@ python3 scripts/generate_submission.py \
   --target-n 40000 \
   --method coverage \
   --seed 42
+
+python3 scripts/generate_submission.py \
+  --train train-UNSW-NB15.csv \
+  --output outputs/submissions/submission-UNSW-NB15-coverage-v1.csv \
+  --target-n 70000 \
+  --method coverage \
+  --seed 42
 ```
 
-UNSW-NB15 使用相同命令结构，但 `--target-n 70000`。每次 public leaderboard 提交都只能作为有限的外部验证，不能直接围绕 public score 反复调参。
+本地对照评估：
 
-`outputs/` 被 Git 忽略，避免将每次试验的 CSV 纳入版本控制。只有在 Kaggle 官方行数已确认、人工检查后，才应将最终上传的两份 CSV 作为 release artifact 保存或共享。
-
-## 推荐的完成路线
-
-建议保留 starter kit 作为对照，并新增独立、可复现实验代码，而不是直接把复杂逻辑堆进 starter kit。
-
-1. **确定官方约束**：从 Kaggle 页面记录最终 `TARGET_N`、列顺序、submission 次数限制与任何最新规则。
-2. **建立本地评估**：对已发布数据做固定的、按标签分层的开发/审计切分；每次方法比较均以相同切分、随机种子和预算运行 ECOD 与 Isolation Forest，分别报告 AUPRC 与平均值。
-3. **先完成强对照**：全体 normal bootstrap、starter-kit 20 prototype + jitter、全体 normal + jitter。
-4. **实现主要 generator**：按 normal 数据的类别签名或混合表示的 cluster 分配生成配额；从兼容的局部邻居中受限插值；保留一部分 bootstrap 以维持观察到的离散模式和尾部。任何 anomaly-aware rejection/screening 应作为独立消融组件。
-5. **做数据质量检查**：列顺序、无缺失/无无穷、数值范围、整数/二元约束、类别合法性、重复率、类别签名覆盖、分位数/零值比例、相关性偏差。
-6. **参数选择与复现**：不要用 public leaderboard 直接调参；保留配置、随机种子、运行命令、指标和生成审计日志。最终冻结配置后重新用全部训练数据生成 Kaggle submission。
-
-建议后续代码结构：
-
-```text
-src/
-  data.py          # 读取、schema、特征类型与约束
-  baselines.py     # starter / full-bootstrap / jitter 对照
-  generator.py     # 主生成器
-  validation.py    # 输出质量与 submission schema 检查
-  evaluate.py      # 本地 ECOD + Isolation Forest 评估
-scripts/
-  run_experiment.py
-  generate_submission.py
-configs/
-  nsl_kdd.yaml
-  unsw_nb15.yaml
-outputs/           # 忽略大型中间产物；保留配置和关键指标摘要
+```bash
+python3 scripts/evaluate_local.py \
+  --train train-NSL-KDD.csv \
+  --target-n 40000 \
+  --seed 42 \
+  --output outputs/local_eval/nsl-kdd-target40000-seed42.json
 ```
 
 ## 协作约定
 
-- 不直接覆盖 `train-*.csv`、课程 PDF 或他人生成的最终 submission；新输出请使用带数据集、方法、种子和时间/版本的文件名。
-- 每个可比较实验至少记录：数据集、切分、方法/参数、generator seed、detector seed、AUPRC、输出路径和代码 commit。
-- 提交前使用独立验证函数检查 submission 行数、`id` 范围、列名/顺序、缺失值、无穷值和数据类型约束。
-- 提交代码前先执行 `git status`；避免把缓存、虚拟环境、模型 checkpoint 或大型临时结果提交到仓库。
-- 如果新增依赖，请同步更新 `requirements.txt` 或等效环境说明，并在 README 补充运行方式。
+- 不直接覆盖 `train-*.csv`、课程 PDF 或他人的生成结果；新输出须包含数据集、方法、seed 和版本。
+- 每个实验至少记录：数据集、切分、参数、generator seed、detector seed、AUPRC、输出路径和代码 commit。
+- 不要围绕 public score 做无控制的参数搜索；先在固定本地切分选择少量候选，再审慎使用提交额度。
+- 提交前运行 schema 检查；提交后记录 Kaggle submission ref、描述、时间和 public score。
+- 新增依赖时同步更新 `requirements.txt`；不得提交缓存、虚拟环境、checkpoint 或 `outputs/` 下的中间文件。
 
 ## 参考材料
 
-- `Project_2627Sem1/CS5344_anomaly_detection_problem_formulation.pdf`：正式任务定义、数据格式、特征含义和隐藏异常类型设计。
-- `Project_2627Sem1/CS5344_Project_Briefing_2627Sem1.pdf`：Kaggle 评分流程与课程评估说明。
-- `CS5344_Project_Proposal-Team27.pdf`：团队已提交的研究动机和初步方法思路；不是当前实现的唯一约束。
+- `Project_2627Sem1/CS5344_anomaly_detection_problem_formulation.pdf`：正式任务定义、数据格式、feature 含义和隐藏 anomaly 类型设计。
+- `Project_2627Sem1/CS5344_Project_Briefing_2627Sem1.pdf`：课程项目和 Kaggle 评测说明。
