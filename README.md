@@ -67,6 +67,28 @@ python Project_2627Sem1/starter_kit.py
 
 修改脚本顶部的 `TRAIN_CSV` 和 `OUTPUT_CSV` 可以在两个数据集间切换。它是**格式正确的最低基线**，但 20 个 prototype 容易遗漏罕见 normal 模式，独立加噪也可能破坏数值特征之间的依赖关系；不建议把它当作最终方法。
 
+## 团队主生成器（开发中）
+
+主方法位于 `src/coverage_generator.py`，命令入口为 `scripts/generate_submission.py`。第一版采用：
+
+- 使用全部 normal 样本，而不是只取 20 个 prototype；
+- 以三个类别特征组合（categorical signature）作为正常运行模式；
+- 在经验频率与均匀覆盖之间分配生成配额，同时限制罕见模式的最大过采样倍数；
+- 在相同类别签名内混合 exact bootstrap 与小幅数值插值；类别和二元特征保持不变；
+- 自动验证行数、ID、列顺序、缺失值和无穷值。
+
+示例（`2000` 仅用于本地开发；最终值必须换成官方要求）：
+
+```bash
+python3 scripts/generate_submission.py \
+  --train train-NSL-KDD.csv \
+  --output /tmp/submission-nsl-kdd-coverage.csv \
+  --target-n 2000 \
+  --seed 42
+```
+
+这只是首版可复现方法，尚未经过本地 detector 对照实验挑选参数，也尚未等同于最终 Kaggle 方法。
+
 ## 推荐的完成路线
 
 建议保留 starter kit 作为对照，并新增独立、可复现实验代码，而不是直接把复杂逻辑堆进 starter kit。
