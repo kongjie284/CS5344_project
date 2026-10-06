@@ -92,6 +92,10 @@ python3 Project_2627Sem1/starter_kit.py
 
 `coverage-v2` 是未提交的局部近邻实验：它使用经验 signature 配额、近邻候选池和 log-space 插值。以 3 个本地 IForest seeds（17、42、83）复核后，v2 在 NSL-KDD（0.9527）和 UNSW-NB15（0.4921）均低于 v1，因此当前不应使用 v2 消耗 Kaggle 提交额度。保留该实现仅供后续受控消融。
 
+UNSW-NB15 的下一候选为 `unsw-safe-core`：先在 robust-scaled 数值特征和 one-hot 类别特征空间中计算每个 normal 到最近 anomaly/normal 的距离比，筛去最接近已知 anomaly 的 20% normal anchors，再复用 coverage v1 生成。为避免全局筛选消灭罕见但合法的正常类别组合，每个 observed signature 至少保留 2 个最安全 anchors。随机 holdout 的 70,000 行、3-seed proxy 为 0.5660（v1 为 0.4984）；3 个 anomaly-cluster holdout 的快速 proxy 平均增益为 +0.0098，最差 cluster 为 -0.0015。它是尚未提交的 v3 候选，必须先检查完整输出并由团队明确决定是否使用提交额度。
+
+生成该候选：`python3 scripts/generate_submission.py --train train-UNSW-NB15.csv --output outputs/submissions/submission-UNSW-NB15-safe-core-v3.csv --target-n 70000 --method unsw-safe-core --boundary-drop-fraction 0.20 --minimum-signature-rows 2 --seed 42`。
+
 导出命令：
 
 ```bash

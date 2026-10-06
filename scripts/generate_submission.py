@@ -17,6 +17,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from src.baselines import full_normal_bootstrap
 from src.coverage_generator import GenerationConfig, generate_normal_submission, validate_submission
 from src.coverage_v2 import V2Config, generate_normal_submission_v2
+from src.unsw_safe_core import SafeCoreConfig, generate_unsw_safe_core_submission
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--method",
-        choices=("coverage", "coverage-v2", "full-bootstrap"),
+        choices=("coverage", "coverage-v2", "unsw-safe-core", "full-bootstrap"),
         default="coverage",
         help="Generation method. Use local evaluation results to choose it.",
     )
@@ -35,6 +36,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-oversample-factor", type=float, default=None)
     parser.add_argument("--bootstrap-fraction", type=float, default=None)
     parser.add_argument("--interpolation-alpha", type=float, default=None)
+    parser.add_argument("--boundary-drop-fraction", type=float, default=0.20)
+    parser.add_argument("--minimum-signature-rows", type=int, default=2)
     return parser.parse_args()
 
 
@@ -62,6 +65,21 @@ def main() -> None:
                 max_oversample_factor=2.0 if args.max_oversample_factor is None else args.max_oversample_factor,
                 bootstrap_fraction=0.20 if args.bootstrap_fraction is None else args.bootstrap_fraction,
                 interpolation_alpha=0.10 if args.interpolation_alpha is None else args.interpolation_alpha,
+            ),
+        )
+    elif args.method == "unsw-safe-core":
+        submission, diagnostics = generate_unsw_safe_core_submission(
+            train,
+            "is_anomaly",
+            SafeCoreConfig(
+                target_n=args.target_n,
+                seed=args.seed,
+                boundary_drop_fraction=args.boundary_drop_fraction,
+                minimum_signature_rows=args.minimum_signature_rows,
+                coverage_strength=0.15 if args.coverage_strength is None else args.coverage_strength,
+                max_oversample_factor=4.0 if args.max_oversample_factor is None else args.max_oversample_factor,
+                bootstrap_fraction=0.50 if args.bootstrap_fraction is None else args.bootstrap_fraction,
+                interpolation_alpha=0.30 if args.interpolation_alpha is None else args.interpolation_alpha,
             ),
         )
     else:

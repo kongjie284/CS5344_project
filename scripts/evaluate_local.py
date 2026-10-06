@@ -29,6 +29,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from src.baselines import full_normal_bootstrap, starter_style_jitter
 from src.coverage_generator import GenerationConfig, generate_normal_submission, infer_feature_types
 from src.coverage_v2 import V2Config, generate_normal_submission_v2
+from src.unsw_safe_core import SafeCoreConfig, generate_unsw_safe_core_submission
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +39,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--test-size", type=float, default=0.20)
     parser.add_argument("--iforest-seeds", type=int, nargs="+", default=[42])
+    parser.add_argument("--boundary-drop-fraction", type=float, default=0.20)
+    parser.add_argument("--minimum-signature-rows", type=int, default=2)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
 
@@ -107,6 +110,18 @@ def main() -> None:
             V2Config(target_n=args.target_n, seed=args.seed),
         )[0].drop(columns="id"),
     }
+    # This method uses known anomaly labels and is specific to the UNSW schema.
+    if {"proto", "service", "state", "tcprtt"}.issubset(features):
+        methods["unsw_safe_core_v3"] = generate_unsw_safe_core_submission(
+            development,
+            "is_anomaly",
+            SafeCoreConfig(
+                target_n=args.target_n,
+                seed=args.seed,
+                boundary_drop_fraction=args.boundary_drop_fraction,
+                minimum_signature_rows=args.minimum_signature_rows,
+            ),
+        )[0].drop(columns="id")
     results = {
         name: score_candidate(synthetic[features], audit[features], audit["is_anomaly"], args.iforest_seeds)
         for name, synthetic in methods.items()
@@ -117,6 +132,8 @@ def main() -> None:
         "target_n": args.target_n,
         "seed": args.seed,
         "iforest_seeds": args.iforest_seeds,
+        "boundary_drop_fraction": args.boundary_drop_fraction,
+        "minimum_signature_rows": args.minimum_signature_rows,
         "development_rows": len(development),
         "audit_rows": len(audit),
         "results": results,
