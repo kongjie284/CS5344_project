@@ -90,6 +90,8 @@ python3 Project_2627Sem1/starter_kit.py
 
 这些是本地 proxy，不是 Kaggle 官方分数；官方 IForest 使用 10 个固定 seeds，hidden data 也不可访问。
 
+`coverage-v2` 是未提交的局部近邻实验：它使用经验 signature 配额、近邻候选池和 log-space 插值。以 3 个本地 IForest seeds（17、42、83）复核后，v2 在 NSL-KDD（0.9527）和 UNSW-NB15（0.4921）均低于 v1，因此当前不应使用 v2 消耗 Kaggle 提交额度。保留该实现仅供后续受控消融。
+
 导出命令：
 
 ```bash

@@ -16,6 +16,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from src.baselines import full_normal_bootstrap
 from src.coverage_generator import GenerationConfig, generate_normal_submission, validate_submission
+from src.coverage_v2 import V2Config, generate_normal_submission_v2
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,30 +27,43 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--method",
-        choices=("coverage", "full-bootstrap"),
+        choices=("coverage", "coverage-v2", "full-bootstrap"),
         default="coverage",
         help="Generation method. Use local evaluation results to choose it.",
     )
-    parser.add_argument("--coverage-strength", type=float, default=0.15)
-    parser.add_argument("--max-oversample-factor", type=float, default=4.0)
-    parser.add_argument("--bootstrap-fraction", type=float, default=0.50)
-    parser.add_argument("--interpolation-alpha", type=float, default=0.30)
+    parser.add_argument("--coverage-strength", type=float, default=None)
+    parser.add_argument("--max-oversample-factor", type=float, default=None)
+    parser.add_argument("--bootstrap-fraction", type=float, default=None)
+    parser.add_argument("--interpolation-alpha", type=float, default=None)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     train = pd.read_csv(args.train)
-    config = GenerationConfig(
-        target_n=args.target_n,
-        seed=args.seed,
-        coverage_strength=args.coverage_strength,
-        max_oversample_factor=args.max_oversample_factor,
-        bootstrap_fraction=args.bootstrap_fraction,
-        interpolation_alpha=args.interpolation_alpha,
-    )
     if args.method == "coverage":
+        config = GenerationConfig(
+            target_n=args.target_n,
+            seed=args.seed,
+            coverage_strength=0.15 if args.coverage_strength is None else args.coverage_strength,
+            max_oversample_factor=4.0 if args.max_oversample_factor is None else args.max_oversample_factor,
+            bootstrap_fraction=0.50 if args.bootstrap_fraction is None else args.bootstrap_fraction,
+            interpolation_alpha=0.30 if args.interpolation_alpha is None else args.interpolation_alpha,
+        )
         submission, diagnostics = generate_normal_submission(train, "is_anomaly", config)
+    elif args.method == "coverage-v2":
+        submission, diagnostics = generate_normal_submission_v2(
+            train,
+            "is_anomaly",
+            V2Config(
+                target_n=args.target_n,
+                seed=args.seed,
+                coverage_strength=0.0 if args.coverage_strength is None else args.coverage_strength,
+                max_oversample_factor=2.0 if args.max_oversample_factor is None else args.max_oversample_factor,
+                bootstrap_fraction=0.20 if args.bootstrap_fraction is None else args.bootstrap_fraction,
+                interpolation_alpha=0.10 if args.interpolation_alpha is None else args.interpolation_alpha,
+            ),
+        )
     else:
         features = [column for column in train.columns if column != "is_anomaly"]
         synthetic = full_normal_bootstrap(train, "is_anomaly", args.target_n, args.seed)
